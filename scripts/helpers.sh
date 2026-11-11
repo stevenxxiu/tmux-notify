@@ -41,6 +41,12 @@ telegram_all_enabled() {
   [ "$alert_all" == "on" ]
 }
 
+# Check if the visual bell option is enabled
+telegram_bell_enabled() {
+  local notify_bell="$(get_tmux_option "$tmux_notify_bell" "$tmux_notify_bell_default")"
+  [ ! "$notify_bell" == "off" ]
+}
+
 # Check if telegram bot id and chat id are set
 telegram_available() {
   local telegram_id="$(get_tmux_option "$tmux_notify_telegram_bot_id" "$tmux_notify_telegram_bot_id_default")"
@@ -97,7 +103,7 @@ notify() {
       notify-send "$1"
     fi
   fi
-  
+
   # Send telegram message if telegram variables are set, and telegram alert all is
   # enabled or if the $3 argument is set to true
   if telegram_available && (telegram_all_enabled || [ "$3" == "true" ]); then
@@ -112,11 +118,13 @@ notify() {
     local pushover_title="$(get_tmux_option "$tmux_notify_pushover_title" "$tmux_notify_pushover_title_default")"
     send_pushover_message "$pushover_token" "$pushover_user" "$pushover_title" "$1"
   fi
-  
-  # trigger visual bell
-  # your terminal emulator can be setup to set URGENT bit on visual bell
-  # for eg, Xresources -> URxvt.urgentOnBell: true
-  # Write the bell to the monitored pane's tty so tmux flags its window. No shell
-  # command is run, so this works with any default shell.
-  [ -n "$PANE_TTY" ] && printf '\a' > "$PANE_TTY"
+
+  if (telegram_bell_enabled); then
+    # trigger visual bell
+    # your terminal emulator can be setup to set URGENT bit on visual bell
+    # for eg, Xresources -> URxvt.urgentOnBell: true
+    # Write the bell to the monitored pane's tty so tmux flags its window. No shell
+    # command is run, so this works with any default shell.
+    [ -n "$PANE_TTY" ] && printf '\a' > "$PANE_TTY"
+  fi
 }
